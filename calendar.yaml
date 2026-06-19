@@ -1,0 +1,38 @@
+# Simple calendar: topics, status, scheduled_date
+- id: 1
+  topic: "Productivity tips for remote teams"
+  status: draft
+  scheduled_date: 2026-06-25
+- id: 2
+  topic: "How to structure a weekly newsletter"
+  status: scheduled
+  scheduled_date: 2026-07-01
+  repeat_interval_days: 7
+- id: 3
+  topic: "Why AI automation is the growth secret founders still ignore"
+  status: scheduled
+  scheduled_date: 2026-06-19
+- id: 4
+  topic: "The one common mistake every agency makes with WhatsApp automation"
+  status: scheduled
+  scheduled_date: 2026-06-20
+- id: 5
+  topic: "How automation can make your business feel smaller and more human"
+  status: scheduled
+  scheduled_date: 2026-06-21
+- id: 6
+  topic: "3 AI trends every founder should use before the market catches up"
+  status: scheduled
+  scheduled_date: 2026-06-22
+- id: 7
+  topic: "The hidden cost of bad automation: burnout disguised as efficiency"
+  status: scheduled
+  scheduled_date: 2026-06-23
+- id: 8
+  topic: "How to use AI to automate the work, not the customer"
+  status: scheduled
+  scheduled_date: 2026-06-24
+- id: 9
+  topic: "Why your automation playbook should start with client problems, not tools"
+  status: scheduled
+  scheduled_date: 2026-06-25

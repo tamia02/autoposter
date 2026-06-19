@@ -1,0 +1,12 @@
+__pycache__/
+.venv/
+env/
+*.pyc
+/.idea/
+/.vscode/
+secrets.env
+node_modules/
+dist/
+.env
+reports/
+out/
