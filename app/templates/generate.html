@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Generate — Auto-Poster{% endblock %}
+{% block content %}
+<h1 class="page-title">Generate Content</h1>
+
+{% if not done %}
+<div class="card">
+    <h3>Generate New Content Batch</h3>
+    <form method="POST" style="margin-top:16px;">
+        <div style="margin-bottom:16px;">
+            <label style="font-size:14px; color:#888; display:block; margin-bottom:6px;">Mode</label>
+            <select name="mode" style="background:#0d0d0d; border:1px solid #333; color:#fff; padding:8px 12px; border-radius:8px; width:100%;">
+                <option value="weekly">Weekly Batch (7-8 days)</option>
+                <option value="single">Single Topic</option>
+            </select>
+        </div>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:14px; color:#888; display:block; margin-bottom:6px;">Topic (for single mode)</label>
+            <input type="text" name="topic" placeholder="e.g. Why founders should automate early"
+                style="background:#0d0d0d; border:1px solid #333; color:#fff; padding:8px 12px; border-radius:8px; width:100%;">
+        </div>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:14px; color:#888; display:block; margin-bottom:6px;">Competitors (comma-separated)</label>
+            <input type="text" name="competitors" value="Divyanshi Sharma,Suprava Sabat,Axelle Malek"
+                style="background:#0d0d0d; border:1px solid #333; color:#fff; padding:8px 12px; border-radius:8px; width:100%;">
+        </div>
+        <button type="submit" class="btn btn-primary">Generate Now</button>
+        <p style="font-size:13px; color:#888; margin-top:8px;">This takes 5-10 minutes. Don't close the tab.</p>
+    </form>
+</div>
+{% else %}
+<div class="card" style="border-color:#22C55E;">
+    <h3 style="color:#22C55E;">Generation Complete!</h3>
+    <a href="/drafts" class="btn btn-primary" style="margin-top:12px;">View Drafts &rarr;</a>
+</div>
+<pre class="output" style="margin-top:16px;">{{ output }}</pre>
+{% endif %}
+{% endblock %}

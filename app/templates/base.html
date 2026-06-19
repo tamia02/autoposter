@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Auto-Poster{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+    <nav class="sidebar">
+        <h1>Auto-Poster</h1>
+        <a href="/" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a>
+        <a href="/drafts" class="{% if '/drafts' in request.path %}active{% endif %}">Drafts</a>
+        <a href="/calendar" class="{% if '/calendar' in request.path %}active{% endif %}">Calendar</a>
+        <a href="/generate" class="{% if '/generate' in request.path %}active{% endif %}">Generate</a>
+        <a href="/analytics" class="{% if '/analytics' in request.path %}active{% endif %}">Analytics</a>
+        <a href="/settings" class="{% if '/settings' in request.path %}active{% endif %}">Settings</a>
+    </nav>
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+<script>
+async function publishTo(platform, filePath, imagePath, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Publishing...';
+    const form = new FormData();
+    form.append('platform', platform);
+    form.append('file_path', filePath);
+    if (imagePath) form.append('image_path', imagePath);
+    try {
+        const resp = await fetch('/publish', { method: 'POST', body: form });
+        const data = await resp.json();
+        if (data.success) {
+            btn.textContent = 'Published!';
+            btn.style.background = '#22C55E';
+        } else {
+            btn.textContent = 'Failed';
+            btn.style.background = '#EF4444';
+            alert(data.error);
+        }
+    } catch(e) {
+        btn.textContent = 'Error';
+        alert(e);
+    }
+}
+async function publishAll(folderName, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Publishing all...';
+    try {
+        const resp = await fetch('/publish-all/' + encodeURIComponent(folderName), { method: 'POST' });
+        const data = await resp.json();
+        let allOk = true;
+        for (const [plat, res] of Object.entries(data)) {
+            if (!res.success) allOk = false;
+        }
+        btn.textContent = allOk ? 'All Published!' : 'Some Failed';
+        btn.style.background = allOk ? '#22C55E' : '#EAB308';
+    } catch(e) {
+        btn.textContent = 'Error';
+        alert(e);
+    }
+}
+</script>
+</body>
+</html>

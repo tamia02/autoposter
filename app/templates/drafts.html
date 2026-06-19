@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Drafts — Auto-Poster{% endblock %}
+{% block content %}
+<h1 class="page-title">All Drafts</h1>
+
+{% for day in days %}
+<a href="/draft/{{ day.name }}" class="day-card">
+    <div class="day-info">
+        <h3>{{ day.name }}</h3>
+        <p>
+            {% for plat in day.drafts %}<span class="badge badge-{{ plat }}">{{ plat }}</span> {% endfor %}
+            {% if day.has_infographic %}<span class="badge badge-image">Infographic</span>{% endif %}
+            {% if day.carousel_count > 0 %}<span class="badge badge-image">{{ day.carousel_count }} slides</span>{% endif %}
+        </p>
+    </div>
+    <div class="day-actions">
+        <button class="btn btn-success btn-sm" onclick="event.preventDefault(); publishAll('{{ day.name }}', this)">Publish All</button>
+        <span class="btn btn-outline btn-sm">View &rarr;</span>
+    </div>
+</a>
+{% endfor %}
+
+{% if not days %}
+<div class="card">
+    <h3>No drafts found</h3>
+    <p><a href="/generate" style="color:#6C63FF;">Generate content</a> to get started.</p>
+</div>
+{% endif %}
+{% endblock %}

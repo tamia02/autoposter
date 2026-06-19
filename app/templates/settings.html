@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Settings — Auto-Poster{% endblock %}
+{% block content %}
+<h1 class="page-title">Settings</h1>
+
+<div class="card">
+    <h3>API Connections</h3>
+    <div class="config-row">
+        <span class="key">OpenAI API</span>
+        <span class="val {% if config.OPENAI_API_KEY %}connected{% else %}missing{% endif %}">
+            {{ config.OPENAI_API_KEY or 'Not set' }}
+        </span>
+    </div>
+    <div class="config-row">
+        <span class="key">LinkedIn</span>
+        <span class="val {% if config.LINKEDIN_ACCESS_TOKEN == 'Connected' %}connected{% else %}missing{% endif %}">
+            {{ config.LINKEDIN_ACCESS_TOKEN }}
+        </span>
+    </div>
+    <div class="config-row">
+        <span class="key">X / Twitter</span>
+        <span class="val {% if config.X_ACCESS_TOKEN == 'Connected' %}connected{% else %}missing{% endif %}">
+            {{ config.X_ACCESS_TOKEN }}
+        </span>
+    </div>
+    <div class="config-row">
+        <span class="key">Threads</span>
+        <span class="val {% if config.THREADS_ACCESS_TOKEN == 'Connected' %}connected{% else %}missing{% endif %}">
+            {{ config.THREADS_ACCESS_TOKEN }}
+        </span>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Email Notifications</h3>
+    <div class="config-row">
+        <span class="key">From</span>
+        <span class="val">{{ config.EMAIL_USERNAME or 'Not set' }}</span>
+    </div>
+    <div class="config-row">
+        <span class="key">Recipients</span>
+        <span class="val">{{ config.EMAIL_RECIPIENTS or 'Not set' }}</span>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Publish Mode</h3>
+    <div class="config-row">
+        <span class="key">Current Mode</span>
+        <span class="val" style="color: {% if config.PUBLISH_MODE == 'live' %}#22C55E{% else %}#EAB308{% endif %};">
+            {{ config.PUBLISH_MODE }}
+        </span>
+    </div>
+    <p style="font-size:13px; color:#888; margin-top:8px;">
+        Edit <code>.env</code> file to change settings. Set <code>PUBLISH_MODE=live</code> for auto-publishing.
+    </p>
+</div>
+
+<div class="card">
+    <h3>Scheduled Routine</h3>
+    <div class="config-row">
+        <span class="key">Schedule</span>
+        <span class="val connected">Every Sunday at 9:00 AM IST</span>
+    </div>
+    <div class="config-row">
+        <span class="key">Manage</span>
+        <a href="https://claude.ai/code/routines" target="_blank" style="color:#6C63FF;">Open Claude Routines &rarr;</a>
+    </div>
+</div>
+{% endblock %}

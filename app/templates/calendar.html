@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Calendar — Auto-Poster{% endblock %}
+{% block content %}
+<h1 class="page-title">Content Calendar</h1>
+
+<div style="display:grid; gap:12px;">
+{% for item in calendar %}
+<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <p style="font-size:13px; color:#888;">{{ item.scheduled_date }}</p>
+        <h3 style="margin-top:4px;">{{ item.topic }}</h3>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <span class="badge" style="
+            {% if item.status == 'published' %}background:#22C55E22; color:#22C55E;
+            {% elif item.status == 'scheduled' %}background:#6C63FF22; color:#6C63FF;
+            {% else %}background:#EAB30822; color:#EAB308;{% endif %}
+        ">{{ item.status }}</span>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+{% if not calendar %}
+<div class="card">
+    <h3>No calendar entries</h3>
+    <p>Edit <code>calendar.yaml</code> to add topics and dates.</p>
+</div>
+{% endif %}
+{% endblock %}

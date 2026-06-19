@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Auto-Poster{% endblock %}
+{% block content %}
+<h1 class="page-title">Analytics</h1>
+
+<div class="stats">
+{% for platform, stats in data.summary.items() %}
+<div class="stat-card">
+    <div class="label">{{ platform|upper }}</div>
+    <div class="value">{{ stats.count }} <span style="font-size:14px; color:#888;">posts</span></div>
+    <p style="font-size:13px; color:#888; margin-top:8px;">
+        Likes: {{ stats.total_likes }} &middot; Comments: {{ stats.total_comments }} &middot; Engagement: {{ "%.1f"|format(stats.avg_engagement) }}
+    </p>
+</div>
+{% endfor %}
+</div>
+
+{% if data.top_topics %}
+<div class="card">
+    <h3>Top Performing Topics</h3>
+    {% for t in data.top_topics %}
+    <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid #1a1a1a;">
+        <span>{{ t.topic }}</span>
+        <span style="color:#6C63FF; font-weight:600;">Score: {{ "%.0f"|format(t.avg_score) }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not data.summary %}
+<div class="card">
+    <h3>No analytics data yet</h3>
+    <p>Analytics will appear after you publish posts and track engagement. The system logs metrics automatically when you publish through the dashboard.</p>
+</div>
+{% endif %}
+
+<div class="card" style="margin-top:16px;">
+    <h3>Full Report</h3>
+    <pre class="output">{{ data.report }}</pre>
+</div>
+{% endblock %}

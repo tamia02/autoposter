@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Auto-Poster{% endblock %}
+{% block content %}
+<h1 class="page-title">Dashboard</h1>
+
+<div class="stats">
+    <div class="stat-card">
+        <div class="label">Content Days Ready</div>
+        <div class="value accent">{{ total_days }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Total Drafts</div>
+        <div class="value">{{ total_drafts }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Scheduled Today</div>
+        <div class="value">{{ scheduled_today|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Platforms</div>
+        <div class="value accent">LinkedIn + X</div>
+    </div>
+</div>
+
+{% if scheduled_today %}
+<div class="card" style="border-color: #6C63FF;">
+    <h3>Scheduled for Today</h3>
+    {% for item in scheduled_today %}
+    <p style="color:#fff; margin-top:8px;">{{ item.topic }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+
+<h2 style="font-size:20px; margin-bottom:16px;">Recent Content</h2>
+
+{% for day in days[:5] %}
+<a href="/draft/{{ day.name }}" class="day-card">
+    <div class="day-info">
+        <h3>{{ day.name }}</h3>
+        <p>
+            {% for plat in day.drafts %}<span class="badge badge-{{ plat }}">{{ plat }}</span> {% endfor %}
+            {% if day.has_infographic %}<span class="badge badge-image">Infographic</span>{% endif %}
+            {% if day.carousel_count > 0 %}<span class="badge badge-image">{{ day.carousel_count }} slides</span>{% endif %}
+        </p>
+    </div>
+    <div class="day-actions">
+        <span class="btn btn-outline btn-sm">View &rarr;</span>
+    </div>
+</a>
+{% endfor %}
+
+{% if not days %}
+<div class="card">
+    <h3>No content yet</h3>
+    <p>Go to <a href="/generate" style="color:#6C63FF;">Generate</a> to create your first batch.</p>
+</div>
+{% endif %}
+
+<div style="margin-top:24px;">
+    <a href="/drafts" class="btn btn-outline">View All Drafts &rarr;</a>
+    <a href="/generate" class="btn btn-primary" style="margin-left:8px;">Generate New Batch</a>
+</div>
+{% endblock %}
