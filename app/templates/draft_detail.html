@@ -3,7 +3,7 @@
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
     <h1 class="page-title" style="margin-bottom:0;">{{ day.name }}</h1>
-    <button class="btn btn-success" onclick="publishAll('{{ day.name }}', this)">Publish All Platforms</button>
+    <button class="btn btn-success" onclick="scheduleAll('{{ day.name }}', this)">Schedule All Platforms</button>
 </div>
 
 {% for plat, info in day.drafts.items() %}
@@ -11,10 +11,13 @@
     <div class="platform-header">
         <h3><span class="badge badge-{{ plat }}">{{ plat|upper }}</span></h3>
         <div style="display:flex; gap:8px;">
-            <a href="/edit/{{ info.path }}" class="btn btn-outline btn-sm">Edit</a>
+            <a href="/edit/{{ info.path|replace('\\', '/') }}" class="btn btn-outline btn-sm">Edit</a>
             <button class="btn btn-{{ plat }} btn-sm"
-                onclick="publishTo('{{ plat }}', '{{ info.path }}', '{{ day.folder }}/{{ day.infographic_name }}', this)">
-                Publish to {{ plat|upper }}
+                data-platform="{{ plat }}"
+                data-file="{{ info.path|replace('\\', '/') }}"
+                data-image="{{ day.folder|replace('\\', '/') }}/{{ day.infographic_name }}"
+                onclick="scheduleBtn(this)">
+                Schedule on {{ plat|upper }}
             </button>
         </div>
     </div>
@@ -24,17 +27,23 @@
 
 {% if day.has_infographic %}
 <div class="card">
-    <h3>Infographic</h3>
-    <img src="/image/{{ day.folder }}/{{ day.infographic_name }}" class="image-preview" style="max-width:400px; margin-top:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Infographic (will be posted with the text)</h3>
+        <a href="/download/infographic/{{ day.folder|replace('\\', '/') }}" class="btn btn-primary btn-sm">Download JPG</a>
+    </div>
+    <img src="/image/{{ day.folder|replace('\\', '/') }}/{{ day.infographic_name }}" class="image-preview" style="max-width:400px; margin-top:12px;">
 </div>
 {% endif %}
 
 {% if day.carousel_count > 0 %}
 <div class="card">
-    <h3>Carousel ({{ day.carousel_count }} slides)</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Carousel ({{ day.carousel_count }} slides)</h3>
+        <a href="/download/carousel/{{ day.folder|replace('\\', '/') }}" class="btn btn-primary btn-sm">Download PDF</a>
+    </div>
     <div class="carousel-grid" style="margin-top:12px;">
         {% for i in range(1, day.carousel_count + 1) %}
-        <img src="/image/{{ day.carousel_dir }}/slide_{{ '%02d'|format(i) }}.png" alt="Slide {{ i }}">
+        <img src="/image/{{ day.carousel_dir|replace('\\', '/') }}/slide_{{ '%02d'|format(i) }}.png" alt="Slide {{ i }}">
         {% endfor %}
     </div>
 </div>
@@ -43,4 +52,52 @@
 <div style="margin-top:24px;">
     <a href="/drafts" class="btn btn-outline">&larr; Back to Drafts</a>
 </div>
+
+<script>
+function scheduleBtn(btn) {
+    var platform = btn.getAttribute('data-platform');
+    var filePath = btn.getAttribute('data-file');
+    var imagePath = btn.getAttribute('data-image');
+    scheduleTo(platform, filePath, imagePath, btn);
+}
+
+async function scheduleTo(platform, filePath, imagePath, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Scheduling...';
+    const form = new FormData();
+    form.append('platform', platform);
+    form.append('file_path', filePath);
+    if (imagePath) form.append('image_path', imagePath);
+    try {
+        const resp = await fetch('/schedule-post', { method: 'POST', body: form });
+        const data = await resp.json();
+        if (data.success) {
+            btn.textContent = 'Scheduled for ' + data.date;
+            btn.style.background = '#22C55E';
+        } else {
+            btn.textContent = 'Failed';
+            btn.style.background = '#EF4444';
+            alert(data.error);
+        }
+    } catch(e) {
+        btn.textContent = 'Error';
+        alert(e);
+    }
+}
+
+async function scheduleAll(folderName, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Scheduling all...';
+    try {
+        const resp = await fetch('/schedule-all/' + encodeURIComponent(folderName), { method: 'POST' });
+        const data = await resp.json();
+        btn.textContent = data.success ? 'All Scheduled!' : 'Some Failed';
+        btn.style.background = data.success ? '#22C55E' : '#EAB308';
+        if (data.date) btn.textContent = 'Scheduled for ' + data.date;
+    } catch(e) {
+        btn.textContent = 'Error';
+        alert(e);
+    }
+}
+</script>
 {% endblock %}

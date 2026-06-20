@@ -31,11 +31,15 @@ PLATFORM_INSTRUCTIONS = {
         "- 'Save this. You'll need it.'\n"
         "- 'Repost if someone in your network needs this ♻️'\n\n"
         "NEVER use hashtags. No #anything. Zero hashtags.\n"
+        "NEVER use markdown formatting. No **bold**, no *italic*, no bullet points with -.\n"
+        "Use plain text only. Use line breaks and numbers (1. 2. 3.) for structure.\n"
+        "Use arrow symbols like → instead of bullet points.\n"
         "Write like Charles Miller — use 'How I' not 'How to'. Share YOUR experience."
     ),
     'x': (
         "Write an X (Twitter) thread. Rules:\n\n"
         "- 5-8 tweets, each STRICTLY under 280 characters\n"
+        "- NEVER use markdown. No **bold**, no *italic*. Plain text only.\n"
         "- Number each: 1/ 2/ 3/ etc.\n"
         "- Tweet 1 = HOOK that makes people click 'Show thread'\n"
         "- Each tweet = ONE idea, punchy and direct\n"
@@ -52,6 +56,7 @@ PLATFORM_INSTRUCTIONS = {
         "- Share a personal mini-story or observation\n"
         "- End with a spicy question that invites replies\n"
         "- NEVER use hashtags. No corporate tone.\n"
+        "- NEVER use markdown. No **bold**, no *italic*. Plain text only.\n"
         "- Use line breaks between thoughts"
     ),
 }

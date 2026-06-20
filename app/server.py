@@ -127,7 +127,7 @@ def draft_detail(folder_name):
 
 @app.route('/edit/<path:file_path>', methods=['GET', 'POST'])
 def edit_draft(file_path):
-    full_path = Path(file_path)
+    full_path = Path(file_path.replace('/', os.sep))
     if not full_path.exists():
         return "File not found", 404
 
@@ -142,42 +142,142 @@ def edit_draft(file_path):
 
 @app.route('/publish', methods=['POST'])
 def publish_post():
-    platform = request.form.get('platform', '')
-    file_path = request.form.get('file_path', '')
-    image_path = request.form.get('image_path', '')
-
-    if not platform or not file_path:
-        return jsonify({'error': 'Missing platform or file_path'}), 400
-
-    content = Path(file_path).read_text(encoding='utf-8')
-    img = image_path if image_path and Path(image_path).exists() else None
-
     try:
+        platform = request.form.get('platform', '')
+        file_path = request.form.get('file_path', '')
+        image_path = request.form.get('image_path', '')
+
+        if not platform or not file_path:
+            return jsonify({'error': 'Missing platform or file_path'}), 400
+
+        fp = Path(file_path.replace('/', os.sep))
+        if not fp.exists():
+            return jsonify({'error': f'File not found: {file_path}'}), 404
+
+        content = fp.read_text(encoding='utf-8')
+        img = image_path if image_path and Path(image_path).exists() else None
+
         result = _publish(platform, content, img)
         return jsonify({'success': True, 'result': str(result)})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/schedule-post', methods=['POST'])
+def schedule_post():
+    """Schedule a post for its assigned date (from folder name)."""
+    try:
+        platform = request.form.get('platform', '')
+        file_path = request.form.get('file_path', '')
+        image_path = request.form.get('image_path', '')
+
+        if not platform or not file_path:
+            return jsonify({'error': 'Missing platform or file_path'}), 400
+
+        fp = Path(file_path.replace('/', os.sep))
+        if not fp.exists():
+            return jsonify({'error': f'File not found: {file_path}'}), 404
+
+        # Extract date from folder name (e.g. "Day 1 - Jun 19 - ...")
+        import re
+        folder_name = fp.parent.name
+        date_match = re.search(r'(Jun|Jul|Aug|Sep|Oct|Nov|Dec|Jan|Feb|Mar|Apr|May)\s+(\d+)', folder_name)
+        scheduled_date = folder_name
+        if date_match:
+            scheduled_date = f'{date_match.group(1)} {date_match.group(2)}'
+
+        # Save to schedule file
+        schedule_file = ROOT / 'drafts' / 'schedule.json'
+        schedule = []
+        if schedule_file.exists():
+            schedule = json.loads(schedule_file.read_text(encoding='utf-8'))
+
+        img_path = image_path.replace('/', os.sep) if image_path else ''
+        schedule.append({
+            'platform': platform,
+            'file_path': str(fp),
+            'image_path': img_path if img_path and Path(img_path).exists() else '',
+            'date': scheduled_date,
+            'folder': folder_name,
+            'status': 'scheduled',
+            'created_at': datetime.now().isoformat(),
+        })
+
+        schedule_file.write_text(json.dumps(schedule, indent=2), encoding='utf-8')
+        return jsonify({'success': True, 'date': scheduled_date})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/schedule-all/<path:folder_name>', methods=['POST'])
+def schedule_all(folder_name):
+    """Schedule all platforms for a day."""
+    try:
+        days = _get_days()
+        day = next((d for d in days if d['name'] == folder_name), None)
+        if not day:
+            return jsonify({'error': 'Day not found', 'success': False}), 404
+
+        import re
+        date_match = re.search(r'(Jun|Jul|Aug|Sep|Oct|Nov|Dec|Jan|Feb|Mar|Apr|May)\s+(\d+)', folder_name)
+        scheduled_date = folder_name
+        if date_match:
+            scheduled_date = f'{date_match.group(1)} {date_match.group(2)}'
+
+        schedule_file = ROOT / 'drafts' / 'schedule.json'
+        schedule = []
+        if schedule_file.exists():
+            schedule = json.loads(schedule_file.read_text(encoding='utf-8'))
+
+        folder = Path(day['folder'])
+        img_path = ''
+        for img_name in [day.get('infographic_name', ''), 'Infographic.png', 'infographic.png']:
+            candidate = folder / img_name
+            if candidate.exists():
+                img_path = str(candidate)
+                break
+
+        for plat, info in day['drafts'].items():
+            schedule.append({
+                'platform': plat,
+                'file_path': info['path'],
+                'image_path': img_path,
+                'date': scheduled_date,
+                'folder': folder_name,
+                'status': 'scheduled',
+                'created_at': datetime.now().isoformat(),
+            })
+
+        schedule_file.write_text(json.dumps(schedule, indent=2), encoding='utf-8')
+        return jsonify({'success': True, 'date': scheduled_date})
+
+    except Exception as e:
+        return jsonify({'error': str(e), 'success': False}), 500
+
+
 @app.route('/publish-all/<path:folder_name>', methods=['POST'])
 def publish_all(folder_name):
-    days = _get_days()
-    day = next((d for d in days if d['name'] == folder_name), None)
-    if not day:
-        return jsonify({'error': 'Day not found'}), 404
+    try:
+        days = _get_days()
+        day = next((d for d in days if d['name'] == folder_name), None)
+        if not day:
+            return jsonify({'error': 'Day not found'}), 404
 
-    results = {}
-    folder = Path(day['folder'])
-    img_path = str(folder / day['infographic_name']) if day['has_infographic'] else None
+        results = {}
+        folder = Path(day['folder'])
+        img_path = str(folder / day['infographic_name']) if day['has_infographic'] else None
 
-    for plat, info in day['drafts'].items():
-        try:
-            result = _publish(plat, info['content'], img_path)
-            results[plat] = {'success': True, 'result': str(result)}
-        except Exception as e:
-            results[plat] = {'success': False, 'error': str(e)}
+        for plat, info in day['drafts'].items():
+            try:
+                result = _publish(plat, info['content'], img_path)
+                results[plat] = {'success': True, 'result': str(result)}
+            except Exception as e:
+                results[plat] = {'success': False, 'error': str(e)}
 
-    return jsonify(results)
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/calendar')
@@ -219,10 +319,59 @@ def generate():
 
 @app.route('/image/<path:img_path>')
 def serve_image(img_path):
-    full = Path(img_path)
+    full = Path(img_path.replace('/', os.sep))
     if full.exists():
         return send_file(str(full), mimetype='image/png')
     return "Not found", 404
+
+
+@app.route('/download/infographic/<path:folder_path>')
+def download_infographic(folder_path):
+    """Download infographic as JPG."""
+    folder = Path(folder_path.replace('/', os.sep))
+    for name in ['Infographic.png', 'infographic.png']:
+        png_path = folder / name
+        if png_path.exists():
+            try:
+                from PIL import Image
+                jpg_path = folder / 'infographic_download.jpg'
+                img = Image.open(png_path).convert('RGB')
+                img.save(str(jpg_path), 'JPEG', quality=95)
+                return send_file(str(jpg_path), as_attachment=True,
+                    download_name=f'{folder.name} - Infographic.jpg', mimetype='image/jpeg')
+            except ImportError:
+                return send_file(str(png_path), as_attachment=True,
+                    download_name=f'{folder.name} - Infographic.png', mimetype='image/png')
+    return "Infographic not found", 404
+
+
+@app.route('/download/carousel/<path:folder_path>')
+def download_carousel(folder_path):
+    """Download carousel slides as a single PDF."""
+    folder = Path(folder_path.replace('/', os.sep))
+    carousel_dir = folder / 'Carousel Slides' if (folder / 'Carousel Slides').exists() else folder / 'carousel'
+
+    if not carousel_dir.exists():
+        return "Carousel not found", 404
+
+    slides = sorted(carousel_dir.glob('slide_*.png'))
+    if not slides:
+        return "No slides found", 404
+
+    try:
+        from PIL import Image
+        images = []
+        for slide_path in slides:
+            img = Image.open(slide_path).convert('RGB')
+            images.append(img)
+
+        pdf_path = folder / 'carousel_download.pdf'
+        images[0].save(str(pdf_path), 'PDF', save_all=True, append_images=images[1:], resolution=150)
+
+        return send_file(str(pdf_path), as_attachment=True,
+            download_name=f'{folder.name} - Carousel.pdf', mimetype='application/pdf')
+    except ImportError:
+        return "Pillow is required for PDF export. Run: pip install Pillow", 500
 
 
 @app.route('/settings', methods=['GET', 'POST'])

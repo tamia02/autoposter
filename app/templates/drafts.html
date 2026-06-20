@@ -14,6 +14,8 @@
         </p>
     </div>
     <div class="day-actions">
+        {% if day.has_infographic %}<a href="/download/infographic/{{ day.folder|replace('\\', '/') }}" class="btn btn-outline btn-sm" onclick="event.stopPropagation();">JPG</a>{% endif %}
+        {% if day.carousel_count > 0 %}<a href="/download/carousel/{{ day.folder|replace('\\', '/') }}" class="btn btn-outline btn-sm" onclick="event.stopPropagation();">PDF</a>{% endif %}
         <button class="btn btn-success btn-sm" onclick="event.preventDefault(); publishAll('{{ day.name }}', this)">Publish All</button>
         <span class="btn btn-outline btn-sm">View &rarr;</span>
     </div>

@@ -19,6 +19,18 @@ def _ai_available() -> bool:
     return bool(os.getenv('OPENAI_API_KEY'))
 
 
+def _clean_markdown(text: str) -> str:
+    """Strip markdown formatting for clean LinkedIn/X/Threads paste."""
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'__(.+?)__', r'\1', text)
+    text = re.sub(r'_(.+?)_', r'\1', text)
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*[-•]\s+', '→ ', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
 def generate_ai(
     topic: str,
     platform: str,
@@ -33,7 +45,7 @@ def generate_ai(
         research=research,
         competitor_signals=competitor_signals,
     )
-    return content
+    return _clean_markdown(content)
 
 
 def extract_competitor_signals(research: str) -> str:

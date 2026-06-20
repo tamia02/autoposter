@@ -2,7 +2,7 @@ import os
 import requests
 from pathlib import Path
 
-API_BASE = 'https://api.linkedin.com/rest'
+API_BASE = 'https://api.linkedin.com'
 
 
 def _headers():
@@ -18,55 +18,92 @@ def _headers():
 
 
 def upload_image(image_path: str) -> str:
-    """
-    Upload an image to LinkedIn and return the image URN.
-    Uses the Images API (initializeUpload → PUT binary → image URN).
-    """
     author = os.getenv('LINKEDIN_AUTHOR_URN', '')
     if not author:
         raise RuntimeError('Missing LINKEDIN_AUTHOR_URN')
 
     headers = _headers()
 
-    init_resp = requests.post(
-        f'{API_BASE}/images?action=initializeUpload',
+    # Try v2 assets API (works with Share on LinkedIn product)
+    register_resp = requests.post(
+        f'{API_BASE}/v2/assets?action=registerUpload',
         json={
-            'initializeUploadRequest': {
+            'registerUploadRequest': {
+                'recipes': ['urn:li:digitalmediaRecipe:feedshare-image'],
                 'owner': author,
+                'serviceRelationships': [
+                    {'relationshipType': 'OWNER', 'identifier': 'urn:li:userGeneratedContent'}
+                ]
             }
         },
         headers=headers,
     )
-    init_resp.raise_for_status()
-    init_data = init_resp.json().get('value', {})
-    upload_url = init_data.get('uploadUrl', '')
-    image_urn = init_data.get('image', '')
+
+    if register_resp.status_code == 426:
+        # Try newer REST API
+        init_resp = requests.post(
+            f'{API_BASE}/rest/images?action=initializeUpload',
+            json={'initializeUploadRequest': {'owner': author}},
+            headers=headers,
+        )
+        init_resp.raise_for_status()
+        init_data = init_resp.json().get('value', {})
+        upload_url = init_data.get('uploadUrl', '')
+        image_urn = init_data.get('image', '')
+    else:
+        register_resp.raise_for_status()
+        data = register_resp.json().get('value', {})
+        upload_url = data.get('uploadMechanism', {}).get(
+            'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest', {}
+        ).get('uploadUrl', '')
+        image_urn = data.get('asset', '')
 
     if not upload_url or not image_urn:
-        raise RuntimeError(f'LinkedIn image init failed: {init_data}')
+        raise RuntimeError('LinkedIn image registration failed')
 
     image_bytes = Path(image_path).read_bytes()
     put_resp = requests.put(
         upload_url,
         data=image_bytes,
-        headers={
-            'Authorization': headers['Authorization'],
-            'Content-Type': 'application/octet-stream',
-        },
+        headers={'Authorization': headers['Authorization'], 'Content-Type': 'image/png'},
     )
     put_resp.raise_for_status()
-
     return image_urn
 
 
 def post(content: str, image_urn: str = None) -> dict:
-    """Publish a LinkedIn post, optionally with an image."""
     author = os.getenv('LINKEDIN_AUTHOR_URN', '')
     if not author:
         raise RuntimeError('Missing LINKEDIN_AUTHOR_URN')
 
     headers = _headers()
 
+    # Try new API first (/rest/posts)
+    payload = {
+        'author': author,
+        'commentary': content,
+        'visibility': 'PUBLIC',
+        'distribution': {'feedDistribution': 'MAIN_FEED', 'targetEntities': [], 'thirdPartyDistributionChannels': []},
+        'lifecycleState': 'PUBLISHED',
+    }
+
+    if image_urn:
+        payload['content'] = {
+            'media': {'title': '', 'id': image_urn}
+        }
+
+    resp = requests.post(f'{API_BASE}/rest/posts', json=payload, headers=headers)
+
+    if resp.status_code == 426:
+        # Fallback to v2 UGC API
+        return _post_v2(content, image_urn, author, headers)
+
+    resp.raise_for_status()
+    return {'status': 'published', 'id': resp.headers.get('x-restli-id', '')}
+
+
+def _post_v2(content: str, image_urn: str, author: str, headers: dict) -> dict:
+    """Fallback: use older v2/ugcPosts API."""
     payload = {
         'author': author,
         'lifecycleState': 'PUBLISHED',
@@ -82,21 +119,17 @@ def post(content: str, image_urn: str = None) -> dict:
     if image_urn:
         share = payload['specificContent']['com.linkedin.ugc.ShareContent']
         share['shareMediaCategory'] = 'IMAGE'
-        share['media'] = [
-            {
-                'status': 'READY',
-                'description': {'text': ''},
-                'media': image_urn,
-                'title': {'text': ''},
-            }
-        ]
+        share['media'] = [{'status': 'READY', 'media': image_urn, 'title': {'text': ''}, 'description': {'text': ''}}]
 
-    resp = requests.post(f'{API_BASE}/posts', json=payload, headers=headers)
+    resp = requests.post(f'{API_BASE}/v2/ugcPosts', json=payload, headers=headers)
     resp.raise_for_status()
     return resp.json()
 
 
 def post_with_image(content: str, image_path: str) -> dict:
-    """Upload image then publish post in one call."""
-    image_urn = upload_image(image_path)
-    return post(content, image_urn=image_urn)
+    try:
+        image_urn = upload_image(image_path)
+        return post(content, image_urn=image_urn)
+    except Exception as e:
+        print(f'Image upload failed ({e}), posting text-only...')
+        return post(content)
